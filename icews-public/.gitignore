@@ -1,0 +1,8 @@
+.Rproj.user
+.Rhistory
+.RData
+*.html
+overview_cache/*
+overview_files/*
+data/study_28075/*
+data/icews.sqlite

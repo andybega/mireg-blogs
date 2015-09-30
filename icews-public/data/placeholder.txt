@@ -1,0 +1,3 @@
+Placeholder for directory to sync to github.
+
+Place the ICEWS files from Dataverse here, e.g. the folder `study_28075`.
