@@ -4,6 +4,9 @@
 .RData
 .Rapp.history
 
+.DS_Store
+
 archigos-polity/*.png
 3d-var-viz/graphics/*
 good-coup-bad-coup/graphics/*
+*/figures/
