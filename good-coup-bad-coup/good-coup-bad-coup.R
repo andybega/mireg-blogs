@@ -99,6 +99,27 @@ pt$regime_p1y <- cut(pt$polity_p1y, breaks=c(-100, -11, -6, 0, 5, 9, 10), labels
 pt$regime_p2y <- cut(pt$polity_p2y, breaks=c(-100, -11, -6, 0, 5, 9, 10), labels=reg_lbl)
 
 
+# Rough region coding, just need if Sub-Saharan Africa or not
+pt$region <- ifelse(pt$ccode %in% c(400:591, 625, 626), "Sub-Saharan Africa", "other")
+
+pt$change_1y <- NA
+pt$change_1y <- with(pt, ifelse(as.numeric(regime_m7d) > as.numeric(regime_p1y), "Worse", "Better"))
+pt$change_1y <- with(pt, ifelse(regime_m7d==regime_p1y, "Same", change_1y))
+pt$change_1y <- factor(pt$change_1y, levels = c("Worse", "Same", "Better"))
+
+# Better/worse/same coding
+pt$change_2y <- NA
+pt$change_2y <- with(pt, ifelse(as.numeric(regime_m7d) > as.numeric(regime_p2y), "Worse", "Better"))
+pt$change_2y <- with(pt, ifelse(regime_m7d==regime_p2y, "Same", change_2y))
+pt$change_2y <- factor(pt$change_2y, levels = c("Worse", "Same", "Better"))
+
+# Bin change for plot labels
+pt$change_2y_bin <- with(pt, ifelse(change_2y=="Better", 
+                                    "More democratic", 
+                                    "More authoritarian/\nsame/still in transition"))
+pt$change_2y_bin <- with(pt, ifelse(is.na(change_2y), "No data", change_2y_bin))
+
+
 # Transition matrix and plotting ------------------------------------------
 
 
@@ -210,7 +231,7 @@ p <- ggplot(trans_mat, aes(regime_p2y, regime_m7d, fill = change)) +
   scale_fill_brewer(name="", 
                     type = "diverging",
                     palette = "RdBu") +
-  labs(x = "1 years after",
+  labs(x = "2 years after",
        y = "7 days before") +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1, size = rel(0.8)),
         axis.text.y = element_text(size = rel(0.8)),
@@ -233,26 +254,6 @@ ggsave(filename="graphics/2-year-transitions-ssa-90on.png", plot=p, width=5.2, h
 #   Maybe more recent coups tend to bring about more democratic regimes.
 #   Plot counts of transitions from/to more demo/auth regime by year of coup.
 #
-
-pt$change_1y <- NA
-pt$change_1y <- with(pt, ifelse(as.numeric(regime_m7d) > as.numeric(regime_p1y), "Worse", "Better"))
-pt$change_1y <- with(pt, ifelse(regime_m7d==regime_p1y, "Same", change_1y))
-pt$change_1y <- factor(pt$change_1y, levels = c("Worse", "Same", "Better"))
-
-# Better/worse/same coding
-pt$change_2y <- NA
-pt$change_2y <- with(pt, ifelse(as.numeric(regime_m7d) > as.numeric(regime_p2y), "Worse", "Better"))
-pt$change_2y <- with(pt, ifelse(regime_m7d==regime_p2y, "Same", change_2y))
-pt$change_2y <- factor(pt$change_2y, levels = c("Worse", "Same", "Better"))
-
-# Bin change for plot labels
-pt$change_2y_bin <- with(pt, ifelse(change_2y=="Better", 
-                                    "More democratic", 
-                                    "More authoritarian/\nsame/still in transition"))
-pt$change_2y_bin <- with(pt, ifelse(is.na(change_2y), "No data", change_2y_bin))
-
-# Rough region coding, just need if Sub-Saharan Africa or not
-pt$region <- ifelse(pt$ccode %in% c(400:591, 625, 626), "Sub-Saharan Africa", "other")
 
 # First, for just post-1990 sub-Saharan Africa
 
