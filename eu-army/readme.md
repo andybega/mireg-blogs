@@ -5,7 +5,7 @@ Plots of Eurobarometer EU Army support survey results
 
 ![](eu-army-map.png)
 
-![](eu-barplot.png)
+![](eu-army-barplot.png)
 
 ![](eu-army-milexp.png)
 
