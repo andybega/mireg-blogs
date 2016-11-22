@@ -83,7 +83,7 @@ p2 <- plot_missing(coups3, "cowcode", "date", "ln_gdpen", "year") +
 
 library(gridExtra)
 grid.arrange(p1, p2, ncol = 2)
-ggsave(file = "missing-plot-2.png", arrangeGrob(p1, p2), height = 6, width = 8)
+ggsave(file = "missing-plot-2.png", arrangeGrob(p1, p2, ncol = 2), height = 6, width = 8)
 
 # Check state system membership too
 # First, manually recreate the data for the plot so we can pick which countries
