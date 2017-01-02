@@ -4,4 +4,7 @@ Code for posts on [http://andybeger.com](http://andybeger.com) and [http://predi
 
 I started this collection in July 2015, maybe I'll get back to adding code for older posts here at some point, maybe not.
 
-Since github doesn't allow you to directly download entire folders, I've tried to keep the structure fairly flat, with code and data files for a blog post mixed in the same directory. 
+Github doesn't allow downloading project subfolders. I've tried to keep the structure flat, so you can either try downloading the individual files you need, or try one of the approaches people have developed for downloading folders. See this [stackoverflow question](http://stackoverflow.com/questions/7106012/download-a-single-folder-or-directory-from-a-github-repo/38879691#38879691). 
+
+[DownGit](https://minhaskamal.github.io/DownGit/#/home) worked for me in Chrome, but not Safari.
+
