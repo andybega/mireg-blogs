@@ -10,7 +10,10 @@ library("cshapes")
 library("hrbrthemes")
 library("cowplot")
 
+# REIGN data http://oefresearch.org/datasets/reign googlesheets key
 key <- "1mrtORyhXw9TJMBYLAGPrikA4VDpla_Eq7L-NsEQ5VXg"
+
+# Size of age bins for colors and histogram
 binsize <- 4
 
 leaders <- key %>%
@@ -115,3 +118,5 @@ pp <- p1 +
            fontface = "italic", hjust = 1, size = 3, family = "Arial Narrow")
 ggsave(pp, file = "map-leader-age.png", height = 5.5, width = 8)
 
+# export data just in case
+write_csv(leaders, path = "leader-data.csv")
