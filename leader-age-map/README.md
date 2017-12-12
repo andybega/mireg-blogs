@@ -3,4 +3,4 @@ A thematic map of the age of world leaders, blog post at https://andybeger.com/2
 
 ![World map with leader ages](map-leader-age.png)
 
-The R code is self-contained and will import the needed data. 
+The R code is self-contained and will import the needed data. The CSV file is *just in case*, but should not be needed. 
