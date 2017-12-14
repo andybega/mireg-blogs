@@ -9,6 +9,7 @@ library("raster")
 library("cshapes")
 library("hrbrthemes")
 library("cowplot")
+library("WDI")
 
 # REIGN data http://oefresearch.org/datasets/reign googlesheets key
 key <- "1mrtORyhXw9TJMBYLAGPrikA4VDpla_Eq7L-NsEQ5VXg"
@@ -48,7 +49,7 @@ map <- cshp(date = as.Date("2012-12-31")) %>%
   st_as_sf() %>%
   st_transform("+proj=robin") %>%
   st_simplify(dTolerance = 10000, preserveTopology = TRUE) %>%
-  dplyr::select("GWCODE", "geometry")
+  dplyr::select("GWCODE", "CNTRY_NAME", "ISO1AL3", "geometry")
 
 # Cut age into bins
 cutter <- function(x, bs = binsize) {
@@ -120,3 +121,73 @@ ggsave(pp, file = "map-leader-age.png", height = 5.5, width = 8)
 
 # export data just in case
 write_csv(leaders, path = "leader-data.csv")
+
+
+
+# Extra stuff -------------------------------------------------------------
+#
+#   Is leader age related to country population size or regime type?
+#
+
+library("WDI")
+
+pop <- WDI(indicator = "SP.POP.TOTL", start = 2016, end = 2016, extra = TRUE) %>%
+  dplyr::filter(region != "Aggregates") %>%
+  dplyr::select(iso3c, SP.POP.TOTL)
+
+map <- left_join(map, pop, by = c("ISO1AL3" = "iso3c"))
+
+map <- map %>% mutate(SP.POP.TOTL = case_when(
+  CNTRY_NAME == "Cape Verde"  ~ 539560,
+  CNTRY_NAME == "Eritrea"     ~ 4475000,
+  CNTRY_NAME == "North Korea" ~ 25370000,
+  CNTRY_NAME == "Taiwin"      ~ 23550000,
+  CNTRY_NAME == "Kosovo"      ~ 1816000,
+  TRUE ~ SP.POP.TOTL
+))
+
+ggplot(map, aes(x = SP.POP.TOTL, y = leader_age)) +
+  scale_x_log10() + 
+  geom_point() +
+  theme_ipsum() +
+  geom_smooth() +
+  labs(x = "Population", y = "Leader age", caption = "Data: WDI, REIGN leaders",
+       title = "Leader age is not related to country population size")
+ggsave("leader-age-vs-country-pop.png", height = 5, width = 7)
+
+# You'll have to download V-Dem for this part...it's big
+if (FALSE) {
+  #vdem <- rio::import("~/Downloads/Country_Year_V-Dem_CSV_v7.1/V-Dem-DS-CY-v7.1.csv")
+  vdem <- vdem %>% 
+    dplyr::filter(year==2016) %>%
+    dplyr::select(country_name, year, COWcode, v2x_libdem) %>%
+    dplyr::mutate(gwcode = case_when(
+      country_name=="Germany" ~ 260L,
+      country_name=="Serbia"  ~ 340L,
+      country_name=="Yemen"   ~ 678L,
+      TRUE ~ COWcode
+    )) %>%
+    dplyr::select(-country_name, -COWcode)
+  # export data 
+  write_csv(vdem, path = "vdem-libdem-2016.csv")
+}
+
+vdem <- read_csv("vdem-libdem-2016.csv")
+map <- left_join(map, vdem, by = c("GWCODE" = "gwcode"))
+
+ggplot(map, aes(x = v2x_libdem, y = leader_age)) +
+  geom_point() +
+  theme_ipsum() +
+  geom_smooth() +
+  labs(x = "V-Dem liberal democracy index", y = "Leader age", 
+       caption = "Data: V-Dem, REIGN leaders",
+       title = "Democratic leaders are slightly younger",
+       subtitle = "At least at the end of 2017")
+ggsave("leader-age-vs-democracy.png", height = 5, width = 7)
+
+summary(lm(leader_age ~ v2x_libdem + log10(SP.POP.TOTL), data = map))
+
+filter(map, v2x_libdem < .125) %>% 
+  arrange(leader_age) %>% 
+  dplyr::select(LEADER, CNTRY_NAME, leader_age)
+
