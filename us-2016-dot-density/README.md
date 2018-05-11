@@ -10,8 +10,8 @@ Generically, to make a dot density map in R:
 ``` r
 suppressMessages({
   library("tidyverse")
-library("USAboundaries")
-library("sf")
+  library("USAboundaries")
+  library("sf")
 })
 
 # Modified version of sf:::st_sample that combines points by sampled polyon

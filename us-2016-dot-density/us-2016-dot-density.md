@@ -1,13 +1,11 @@
-Untitled
+Blog post
 ================
 
-*Subtitle: It is hard to do dot density maps of people in the US because so many people live in the big cities and so few people live in the vast land between them.*[1]
+There was a little war of maps after the 2016 election. A thematic map of the election results with states colored red or blue based on where the plurality of votes went, [like this one from Politico](https://www.politico.com/mapdata-2016/2016-election/results/map/president/), visually overstates the Republican vote share. This is even more evident with a map at the county level ([example from here](https://imgur.com/gallery/sX9GM)), which shows a sea of red containing scattered islands of a blue archipelago.
 
-There was a little war of maps after the 2016 election. A typical thematic map of the election results with states colored red or blue based on where the plurality of votes went, [like this one from Politico](https://www.politico.com/mapdata-2016/2016-election/results/map/president/), visually overstates the Republican vote share. This is even more evident with a map at the county level ([example](https://imgur.com/gallery/sX9GM)), which shows a sea of red containing scattered islands of the blue archipelago.
+The problem is that these maps depict area, not the density or number of voters, and critics pointed out that the islands of blue actually contain the majority of the US's population, voters, and economic strength. Concretely, consider this example: the county with the largest number of votes--LA county with 3.4 million votes--had as many votes as the smallest 9 states[1] by the number of votes cast, combined. Or, if we are looking at counties instead, LA country had as many votes cast as the smallest 1,017 counties combined. Dot density maps are one way to address this kind of concern while keeping the spatial context a map provides.
 
-The problem is that these maps depict area, not the density or number of voters, and critics pointed out that the islands of blue actually contain the majority of the US's population, voters, and economic strength. Concretely, consider this example: the county with the largest number of votes--LA county with 3.4 million votes--had as many votes as the smallest 9 states[2] by the number of votes cast, combined. Or, if we are looking at counties instead, as many as the smallest 1,017 counties combined. Dot density maps are one way to address this kind of concern while keeping the spatial context a map provides.
-
-In any case, while the 2016 election is a little bit passé, figuring out how to make dot density maps in R is not (for me). The map below is the end result. Each dot in the map represents 5,000 votes for a candidate. The underlying data are at the county level which can be seen for the larger counties that have so many votes/dots that their shape is visible.
+In any case, while the 2016 election is a little bit passé, figuring out how to make dot density maps in R is not (for me). Below are details on how to do this and several problems I encountered along the way. This map is the end result. Each dot in the map represents 5,000 votes for a candidate. The underlying data are at the county level, which comes out in the way some of the larger counties with lots of voters are shown.
 
 ![](us-2016-dot-density-medium.png)
 
@@ -16,11 +14,11 @@ In any case, while the 2016 election is a little bit passé, figuring out how to
 Technical details
 =================
 
-The data on votes at the county level are from Michael W. Kearney, at this [github repo](https://github.com/mkearney/presidential_election_county_results_2016). There are no county level results for Alaska and Hawaii, so I will only focus on the lower 48 states. Corresponding shapefiles are from the [USAboundaries](https://cran.r-project.org/package=USAboundaries) package.
+The data on votes at the county level are from Michael W. Kearney, at this [GitHub repo](https://github.com/mkearney/presidential_election_county_results_2016). There are no county level results for Alaska and Hawaii, so I will only focus on the lower 48 states. Corresponding shapefiles are from the [USAboundaries](https://cran.r-project.org/package=USAboundaries) package.
 
 The basis for generating the dots in the map is the `st_sample()` function in [sf](https://cran.r-project.org/package=sf). This samples random points on/in other simple features, i.e. polygons corresponding to counties in this case. The [doc page has some examples](https://r-spatial.github.io/sf/reference/st_sample.html) showing what it does. In principle, getting the data needed to produce a dot density map is as simple as calling this function on each county geometry with a size argument derived from a candidate's number of votes in that county. In practice there were a couple of hiccups.
 
-First, the version of `st_sample()` I am using[3] returns raw points without aggregating them to the geometry they were sampled from. The input data look like this:
+First, the version of `st_sample()` I am using[2] returns raw points without aggregating them to the geometry they were sampled from. The input data look like this:
 
     ## Simple feature collection with 9322 features and 4 fields
     ## geometry type:  MULTIPOLYGON
@@ -29,18 +27,18 @@ First, the version of `st_sample()` I am using[3] returns raw points without agg
     ## epsg (SRID):    102003
     ## proj4string:    +proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs
     ## # A tibble: 9,322 x 5
-    ##      fips name       cand            votes                       geometry
-    ##     <dbl> <chr>      <fct>           <int>              <sf_geometry [m]>
-    ##  1 39131. Pike       Donald Trump     7902 MULTIPOLYGON (((1078953 262...
-    ##  2 39131. Pike       Hillary Clinton  3539 MULTIPOLYGON (((1078953 262...
-    ##  3 39131. Pike       Other             424 MULTIPOLYGON (((1078953 262...
-    ##  4 46003. Aurora     Donald Trump      974 MULTIPOLYGON (((-224564.9 7...
-    ##  5 46003. Aurora     Hillary Clinton   340 MULTIPOLYGON (((-224564.9 7...
-    ##  6 46003. Aurora     Other              93 MULTIPOLYGON (((-224564.9 7...
-    ##  7 55035. Eau Claire Donald Trump    23331 MULTIPOLYGON (((343111 8307...
-    ##  8 55035. Eau Claire Hillary Clinton 27340 MULTIPOLYGON (((343111 8307...
-    ##  9 55035. Eau Claire Other            3512 MULTIPOLYGON (((343111 8307...
-    ## 10 48259. Kendall    Donald Trump    15700 MULTIPOLYGON (((-280936 -81...
+    ##     fips name       cand            votes                         geometry
+    ##    <dbl> <chr>      <fct>           <int>               <MULTIPOLYGON [m]>
+    ##  1 39131 Pike       Donald Trump     7902 (((1078953 262165.8, 1127524 26…
+    ##  2 39131 Pike       Hillary Clinton  3539 (((1078953 262165.8, 1127524 26…
+    ##  3 39131 Pike       Other             424 (((1078953 262165.8, 1127524 26…
+    ##  4 46003 Aurora     Donald Trump      974 (((-224564.9 723626.8, -186475.…
+    ##  5 46003 Aurora     Hillary Clinton   340 (((-224564.9 723626.8, -186475.…
+    ##  6 46003 Aurora     Other              93 (((-224564.9 723626.8, -186475.…
+    ##  7 55035 Eau Claire Donald Trump    23331 (((343111 830755.5, 400496.3 83…
+    ##  8 55035 Eau Claire Hillary Clinton 27340 (((343111 830755.5, 400496.3 83…
+    ##  9 55035 Eau Claire Other            3512 (((343111 830755.5, 400496.3 83…
+    ## 10 48259 Kendall    Donald Trump    15700 (((-280936 -817746.3, -248977.9…
     ## # ... with 9,312 more rows
 
 Meanwhile `st_sample(county_cand$geometry[1:2])` just returns a bunch of points rather than a single MULTIPOINT feature for each input county, e.g.:
@@ -132,7 +130,7 @@ st_poly_sample_n <- function(x, size) {
 
 Sidebrag: I managed to get this working without causing an infite `while` loop...possibly reflecting learning from past mistakes.
 
-At this point I thought all problems had been fixed and I could kick back and spend an inordinate amount of time messing with minor plot parameters. Alas, when I compared the number of votes implied by the number of sampled points in the first draft plot and the actual total number of votes, another problem became obvious: there were not nearly enough dots. Several million votes were missing!
+At this point the code runs and one can make a map, maybe spend an inordinate amount of time messing with minor plot parameters. However, when comparing the number of voters implied by the number of dots (dots x 5000) with the actual total number of voters, there is a big discrepancy. Several million votes are missing.
 
 The biggest factor in that were small county-candidate vote records. With 5,000 votes per dot, county-candidate pairs with less than 2,500 votes get rounded to a sample of 0 points. And there are a lot of such small vote records.
 
@@ -142,7 +140,7 @@ This histogram shows the smaller county-candidate pairs with less than 12,500, s
 
 To fix this I did another pass through the county-candidate data and for records that were rounded to 0 probabilistically sampled a single point depending on how many votes there were, i.e. candidate-county records with 2,500 votes were more likely to get a point than a pair with 500 votes.
 
-Actually doing this with probabilities of *P* = Votes/5000 if Votes &lt; 2,500, while technically correct as far as I can tell, would in practice push us back too far, creating too many new dots than we need to make up for the total vote/dot shortfall. The reason, I think but haven't verified, is because I'm already oversampling within each bin. For example, for observations that get rounded to 1 dot, there are more towards the lower end of 2,500 than the upper end of 7,500, meaning that the bin as a whole will end up with too many dots. And although it's hard to tell in the plot for the bin for 2, that's a problem in all bins. So technically the sampling throughout should not use rounding but rather be probabilistic in some fashion. E.g. give a record with 7,500 votes 1 or 2 dots with equal probability of 0.5.
+Actually doing this with probabilities of *P* = Votes/5000 if Votes &lt; 2,500, while technically correct as far as I can tell, would in practice push us back too far and create too many new dots than we need to make up for the total vote/dot shortfall. The reason, I think but haven't verified, is because I'm already oversampling within each bin. For example, for observations that get rounded to 1 dot, there are more towards the lower end of 2,500 than the upper end of 7,500, meaning that the bin as a whole will end up with too many dots. And although it's hard to tell in the plot for the bin for 2, that's a problem in all bins. So technically the sampling throughout should not use rounding but rather be probabilistic in some fashion. E.g. give a record with 7,500 votes 1 or 2 dots with equal probability of 0.5.
 
 I didn't do that. Since most of the problem is at the very low end with rounding to 0, fixing those gives results that are correct enough, as a table comparing vote and dot shares for each candidate shows.
 
@@ -156,10 +154,8 @@ Close enough. For good measure, here is the rounding error for different votes p
 
 ![](round-error-vs-dot-resolution.png)
 
-[Code on GitHub](https://www.github.com/andybega/mireg).
+Code for making do density maps with R and for the 2016 election map in this post is [on GitHub here](https://github.com/andybega/mireg-blogs/tree/master/us-2016-dot-density).
 
-[1] At least with data that doesn't go deeper than the county level.
+[1] Wyoming, Vermont, DC, North Dakota, South Dakota, Delaware, Rhode Island, Montana, Idaho.
 
-[2] Wyoming, Vermont, DC, North Dakota, South Dakota, Delaware, Rhode Island, Montana, Idaho.
-
-[3] All this was done with development versions of "sf" and "ggplot2" from GitHub; for "ggplot2" I know for sure that the last CRAN version, 2.2.1, does not include needed fixes for `geom_sf()` bugs.
+[2] All this was done with development versions of "sf" and "ggplot2" from GitHub; for "ggplot2" I know for sure that the last CRAN version, 2.2.1, does not include needed fixes for `geom_sf()` bugs.
