@@ -12,7 +12,7 @@ In any case, while the 2016 election is a little bit passé, figuring out how to
 ------------------------------------------------------------------------
 
 Technical details
-=================
+-----------------
 
 The data on votes at the county level are from Michael W. Kearney, at this [GitHub repo](https://github.com/mkearney/presidential_election_county_results_2016). There are no county level results for Alaska and Hawaii, so I will only focus on the lower 48 states. Corresponding shapefiles are from the [USAboundaries](https://cran.r-project.org/package=USAboundaries) package.
 
@@ -20,15 +20,15 @@ The basis for generating the dots in the map is the `st_sample()` function in [s
 
 First, the version of `st_sample()` I am using[2] returns raw points without aggregating them to the geometry they were sampled from. The input data look like this:
 
-    ## Simple feature collection with 9322 features and 4 fields
+    ## Simple feature collection with 9324 features and 4 fields
     ## geometry type:  MULTIPOLYGON
     ## dimension:      XY
     ## bbox:           xmin: -2356114 ymin: -1338125 xmax: 2258154 ymax: 1558935
     ## epsg (SRID):    102003
     ## proj4string:    +proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=37.5 +lon_0=-96 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs
-    ## # A tibble: 9,322 x 5
+    ## # A tibble: 9,324 x 5
     ##     fips name       cand            votes                         geometry
-    ##    <dbl> <chr>      <fct>           <int>               <MULTIPOLYGON [m]>
+    ##    <dbl> <chr>      <fct>           <dbl>               <MULTIPOLYGON [m]>
     ##  1 39131 Pike       Donald Trump     7902 (((1078953 262165.8, 1127524 26…
     ##  2 39131 Pike       Hillary Clinton  3539 (((1078953 262165.8, 1127524 26…
     ##  3 39131 Pike       Other             424 (((1078953 262165.8, 1127524 26…
@@ -39,7 +39,7 @@ First, the version of `st_sample()` I am using[2] returns raw points without agg
     ##  8 55035 Eau Claire Hillary Clinton 27340 (((343111 830755.5, 400496.3 83…
     ##  9 55035 Eau Claire Other            3512 (((343111 830755.5, 400496.3 83…
     ## 10 48259 Kendall    Donald Trump    15700 (((-280936 -817746.3, -248977.9…
-    ## # ... with 9,312 more rows
+    ## # ... with 9,314 more rows
 
 Meanwhile `st_sample(county_cand$geometry[1:2])` just returns a bunch of points rather than a single MULTIPOINT feature for each input county, e.g.:
 
@@ -154,7 +154,14 @@ Close enough. For good measure, here is the rounding error for different votes p
 
 ![](round-error-vs-dot-resolution.png)
 
+*Update 2018-06-22: I learned while making the pointilist version below that a general solution for this kind of rounding issue is to use stochastic rounding instead of regular, deterministic, rounding. A function implementing this in R is on the GitHub page for this post, with the other code.*
+
 Code for making do density maps with R and for the 2016 election map in this post is [on GitHub here](https://github.com/andybega/mireg-blogs/tree/master/us-2016-dot-density).
+
+Addendum: pointilist map
+------------------------
+
+Lastly, here is a pointilist version in the style of [Rankin's French kissing map](http://www.radicalcartography.net/index.html?frenchkisses). This does away with the "each dot is X people" mapping. Instead, the number of dots for a candidate in a county are based on their vote share and the county area. Thus the point density overall is more or less uniform over space.
 
 [1] Wyoming, Vermont, DC, North Dakota, South Dakota, Delaware, Rhode Island, Montana, Idaho.
 

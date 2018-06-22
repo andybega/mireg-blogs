@@ -13,6 +13,7 @@ library("USAboundaries")
 library("sf")
 library("forcats")
 library("hrbrthemes")
+library("units")
 
 # Modified version of sf:::st_sample that combines points by sampled polyon
 st_sample_by_poly <- function(x, size) {
@@ -62,6 +63,20 @@ if (!file.exists("us-2016-county-results.csv")) {
 }
 
 votes <- read_csv("us-2016-county-results.csv")
+
+# add record for Oglala Lakota county
+ol <- tibble(
+  county = "Oglala Lakota",
+  fips = "46102",
+  cand = c("Hillary Clinton", "Donald Trump", "Gary Johnson", "Darrell L. Castle"),
+  st = "SD", 
+  pc_report = 1,
+  votes = c(2510, 241, 106, 48),
+  lead = NA_character_,
+  pct = NA_real_,
+  state.name = "South Dakota"
+)
+votes <- bind_rows(votes, ol)
 
 votes_short <- votes %>%
   filter(!is.na(county)) %>%
@@ -131,6 +146,8 @@ state %>%
   slice(1:which.min(abs(county$votes[1]-cum_votes)))
 ```
 
+*(Last updated on 2018-06-22 with pointilist version and reference to stochastic rounding.)*
+
 There was a little war of maps after the 2016 election. A thematic map of the election results with states colored red or blue based on where the plurality of votes went, [like this one from Politico](https://www.politico.com/mapdata-2016/2016-election/results/map/president/), visually overstates the Republican vote share. This is even more evident with a map at the county level ([example from here](https://imgur.com/gallery/sX9GM)), which shows a sea of red containing scattered islands of a blue archipelago. 
 
 
@@ -196,9 +213,11 @@ ggsave(p, file = "us-2016-dot-density-medium.png", height = 8, width = 12)
 
 ![](us-2016-dot-density-medium.png)
 
+
+
 *****
 
-# Technical details
+## Technical details
 
 The data on votes at the county level are from Michael W. Kearney, at this [GitHub repo](https://github.com/mkearney/presidential_election_county_results_2016). There are no county level results for Alaska and Hawaii, so I will only focus on the lower 48 states. Corresponding shapefiles are from the [USAboundaries](https://cran.r-project.org/package=USAboundaries) package. 
 
@@ -366,6 +385,8 @@ dev.off()
 
 ![](round-error-vs-dot-resolution.png)
 
+*Update 2018-06-22: I learned while making the pointilist version below that a general solution for this kind of rounding issue is to use stochastic rounding instead of regular, deterministic, rounding. A function implementing this in R is on the GitHub page for this post, with the other code.*
+
 Code for making do density maps with R and for the 2016 election map in this post is
 [on GitHub here](https://github.com/andybega/mireg-blogs/tree/master/us-2016-dot-density).
 
@@ -463,5 +484,69 @@ p3 <- ggplot() +
         text = element_text(size = 16))  +
   guides(colour = guide_legend(override.aes = list(size = 3)))
 ggsave(p3, file = "us-2016-dot-density-fine.png", height = 8, width = 12)
+```
+
+## Addendum: pointilist map
+
+Lastly, here is a pointilist version in the style of [Rankin's French kissing map](http://www.radicalcartography.net/index.html?frenchkisses). This does away with the "each dot is X people" mapping. Instead, the number of dots for a candidate in a county are based on their vote share and the county area. Thus the point density overall is more or less uniform over space. 
+
+```{r pointilism}
+county_cand2 <-  votes %>%
+  filter(!is.na(county)) %>%
+  mutate(cand = cand %>% factor() %>% 
+           #fct_other(keep = c("Hillary Clinton", "Donald Trump", "Gary Johnson", "Jill Stein")),
+           fct_other(keep = c("Hillary Clinton", "Donald Trump")),
+         fips = as.numeric(fips)) %>%
+  group_by(fips, cand) %>%
+  summarize(votes = sum(votes)) %>%
+  left_join(lower48, ., by = "fips")
+
+# adapted from http://coleoguy.blogspot.com.ee/2016/04/stochasticprobabilistic-rounding.html
+stochastic_round = function(x){
+  ## extract the decimal portion
+  q = abs(x - trunc(x))
+  
+  ## draw a value 0 or 1 with probability
+  ## based on how close we already are
+  adj = rbinom(n = length(x), size = 1, prob = q)
+  
+  ## make it negative if x is
+  adj <- ifelse(x < 0, adj * -1, adj)
+  
+  ## return our new value
+  trunc(x) + adj
+}
+
+
+voter_points2 <- county_cand2 %>%
+  filter(!is.na(votes)) %>%
+  dplyr::mutate(area_km2 = st_area(st_geometry(.)) / 
+                  (1e6 * with(ud_units, m^2)) * (1 * with(ud_units, km^2))
+  ) %>%
+  dplyr::group_by(fips) %>%
+  dplyr::mutate(county_votes = sum(votes)) %>%
+  dplyr::ungroup() %>%
+  mutate(vote_share = votes / county_votes,
+         cand_points = stochastic_round(vote_share * as.numeric(area_km2) / 50))
+
+voter_points2 <- voter_points2 %>%
+  mutate(points = st_sample_by_poly(., size = cand_points)) %>%
+  mutate(county_geom = st_geometry(.)) %>%
+  st_set_geometry(.$points)
+
+p <- ggplot() +
+  geom_sf(data = lower48_states, fill = "gray95", colour = "white", size = .5) +
+  geom_sf(data = voter_points2, aes(colour = cand), size = .2, 
+          shape = 19, alpha = .5, show.legend = "point") +
+  scale_colour_manual("", values = vals1) +
+  ggtitle("US 2016 Presidential election results",
+          sub = "Pointilist variant à la Rankin") +
+  labs(caption = "Andreas Beger\nVote data from Michael W. Kearney \nhttps://github.com/mkearney/presidential_election_county_results_2016") +
+  coord_sf(datum = NA) +
+  guides(colour = guide_legend(override.aes = list(size = 3))) +
+  theme_ipsum() +
+  theme(legend.position = c(.1, .2), 
+        text = element_text(size = 16)) 
+ggsave(p, file = "us-2016-pointilist-map.png", height = 8, width = 11)
 ```
 

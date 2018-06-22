@@ -76,6 +76,27 @@ ggplot() +
 
 ```
 
+In my first go at this, I had a problem with rounding where counties with voters below the "X voters per dot" threshold were rounded to 0 dots. So rural or rather small population counties were severely underrepresented. The solution is to use stochastic rounding, which this function implements:
+
+```{r}
+# adapted from http://coleoguy.blogspot.com.ee/2016/04/stochasticprobabilistic-rounding.html
+stochastic_round = function(x){
+  ## extract the decimal portion
+  q = abs(x - trunc(x))
+  
+  ## draw a value 0 or 1 with probability
+  ## based on how close we already are
+  adj = rbinom(n = length(x), size = 1, prob = q)
+  
+  ## make it negative if x is
+  adj <- ifelse(x < 0, adj * -1, adj)
+  
+  ## return our new value
+  trunc(x) + adj
+}
+```
+
+
 ## Other dot resolutions
 
 With 10k votes per dot the county boundaries for places like LA are less prominent.
@@ -85,3 +106,9 @@ With 10k votes per dot the county boundaries for places like LA are less promine
 Doesn't look like the county level data works well with *more* dots, here a dot for each 1,000 votes:
 
 ![](us-2016-dot-density-fine.png)
+
+## Pointilist dot map
+
+Lastly, here is a pointilist version in the style of [Rankin's French kissing map](http://www.radicalcartography.net/index.html?frenchkisses). This does away with the "each dot is X people" mapping. Instead, the number of dots for a candidate in a county are based on their vote share and the county area. Thus the point density overall is more or less uniform over space. 
+
+![](us-2016-pointilist-map.png)
